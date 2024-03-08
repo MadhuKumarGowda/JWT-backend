@@ -17,7 +17,7 @@ router.post("/register", async (req, res) => {
 
   if (record) {
     return res.status(400).send({
-      messgae: "Email has already registered",
+      message: "Email has already registered",
     });
   } else {
     const user = new User({
@@ -44,7 +44,24 @@ router.post("/login", async (req, res) => {
 });
 
 router.get("/user", async (req, res) => {
-  await res.send("Valid user");
+  try {
+    const cookie = req.cookies["jwt"];
+    const claims = jwt.verify(cookie, "SECRET");
+    if (!claims) {
+      return res.status(401).send({
+        message: "unauthenticated 52",
+      });
+    }
+
+    const user = await User.findOne({ _id: claims._id });
+    const { password, ...data } = await user.toJSON();
+    res.send(data);
+  } catch (err) {
+    console.log(err);
+    return res.status(401).send({
+      message: "unauthenticated 61",
+    });
+  }
 });
 
 router.post("/logout", async (req, res) => {
