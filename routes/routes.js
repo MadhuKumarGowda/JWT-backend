@@ -40,7 +40,29 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  await res.send("user logged in");
+  const user = await User.findOne({ email: req.body.email });
+
+  if (!user) {
+    return res.status(404).send({
+      message: "User Not Found",
+    });
+  }
+
+  if (!(await bcrypt.compare(req.body.password, user.password))) {
+    return res.status(400).send({
+      message: " Password is incorrect",
+    });
+  }
+
+  const token = jwt.sign({ _id: user._id }, "SECRET");
+  res.cookie("jwt", token, {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+  });
+
+  res.send({
+    message: "Success",
+  });
 });
 
 router.get("/user", async (req, res) => {
@@ -49,7 +71,7 @@ router.get("/user", async (req, res) => {
     const claims = jwt.verify(cookie, "SECRET");
     if (!claims) {
       return res.status(401).send({
-        message: "unauthenticated 52",
+        message: "unauthenticated",
       });
     }
 
@@ -57,15 +79,17 @@ router.get("/user", async (req, res) => {
     const { password, ...data } = await user.toJSON();
     res.send(data);
   } catch (err) {
-    console.log(err);
     return res.status(401).send({
-      message: "unauthenticated 61",
+      message: "unauthenticated",
     });
   }
 });
 
 router.post("/logout", async (req, res) => {
-  await res.send("user logged out");
+  res.cookie("jwt", "", { maxAge: 0 });
+  res.send({
+    message: "Success",
+  });
 });
 
 module.exports = router;
